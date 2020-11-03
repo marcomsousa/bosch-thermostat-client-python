@@ -1,11 +1,11 @@
-""" Test script of bosch_thermostat_http. """
+""" Test script of bosch_thermostat_client. """
 import asyncio
 import logging
 import json
 import aiohttp
 import time
-import bosch_thermostat_http as bosch
-from bosch_thermostat_http.const import DHW, HC, OPERATION_MODE, UUID, DATE, DHW_CIRCUITS
+import bosch_thermostat_client as bosch
+from bosch_thermostat_client.const.ivt import IVT, HTTP
 
 logging.basicConfig()
 logging.getLogger().setLevel(logging.DEBUG)
@@ -21,27 +21,43 @@ async def main():
         data_file = open("data_file_sim.txt", "r")
         # data_file = open("data_file.txt", "r")
         data = data_file.read().splitlines()
-        gateway = bosch.Gateway(session,
-                                host=data[0],
-                                access_key=data[1],
-                                password=data[2])
+        BoschGateway = bosch.gateway_chooser(device_type=IVT)
+        gateway = BoschGateway(session=session,
+                               session_type=HTTP,
+                               host=data[0],
+                               access_token=data[1],
+                               password=data[2])
         print(await gateway.check_connection())
         await gateway.get_capabilities()
-
+        # await gateway.test_connection()
+        # return
         # small = await gateway.smallscan(DHW_CIRCUITS)
 #        myjson = json.loads(small)
         # print(small)
         # return
-        # sensors = gateway.initialize_sensors()
+        sensors = list(gateway.sensors)
+        notification_sensor = sensors[-1]
+        await notification_sensor.update()
+        print("=================")
+        print(notification_sensor.get_data)
+        print(notification_sensor.get_property("notifications"))
+        # return
         # for sensor in sensors:
         #     await sensor.update()
 
         dhws = gateway.dhw_circuits
         print("DHWS", dhws)
-        return
+        # return
         dhw = dhws[0]
         time.sleep(1)
         await dhw.update()
+        print(dhw.min_temp)
+        print(dhw.max_temp)
+        for sensor in dhw.sensors:
+            await sensor.update()
+            print(sensor.state)
+        # print(dhw.sensors)
+        return
 #        await hc.set_ha_mode("auto") #MEANS AUTO
  #       await hc.update()
         # time.sleep(4)

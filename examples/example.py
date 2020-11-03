@@ -1,11 +1,12 @@
-""" Test script of bosch_thermostat_http. """
+""" Test script of bosch_thermostat_client. """
 import asyncio
 import logging
 import json
 import aiohttp
 import time
-import bosch_thermostat_http as bosch
-from bosch_thermostat_http.const import DHW, HC, OPERATION_MODE, UUID, DATE, DHW_CIRCUITS
+import bosch_thermostat_client as bosch
+from bosch_thermostat_client.const.ivt import IVT, HTTP
+from bosch_thermostat_client.const import HC
 
 logging.basicConfig()
 logging.getLogger().setLevel(logging.DEBUG)
@@ -19,15 +20,17 @@ async def main():
     
     async with aiohttp.ClientSession() as session:
         data_file = open("data_file.txt", "r")
+        # data_file = open("data_file.txt", "r")
         data = data_file.read().splitlines()
-        gateway = bosch.Gateway(session,
-                                host=data[0],
-                                access_key=data[1],
-                                password=data[2])
+        BoschGateway = bosch.gateway_chooser(device_type=IVT)
+        gateway = BoschGateway(session=session,
+                               session_type=HTTP,
+                               host=data[0],
+                               access_token=data[1],
+                               password=data[2])
         print(await gateway.check_connection())
-        # return
-        await gateway.initialize_circuits(DHW)
-
+        await gateway.initialize_circuits(HC)
+        # await gateway.test_connection()
         # small = await gateway.smallscan(DHW_CIRCUITS)
 #        myjson = json.loads(small)
         # print(small)
@@ -36,16 +39,13 @@ async def main():
         # for sensor in sensors:
         #     await sensor.update()
 
-        dhws = gateway.dhw_circuits
-        dhw = dhws[0]
-        time.sleep(1)
-        await dhw.update()
-#        await hc.set_ha_mode("auto") #MEANS AUTO
- #       await hc.update()
-        # time.sleep(4)
-        print("hvac mode", dhw.ha_mode)
-        print("target temp ->", dhw.target_temperature)
-        await dhw.set_temperature(53.0)
+        hcs = gateway.heating_circuits
+        for hc in hcs:
+            time.sleep(1)
+            await hc.update()
+            print("hvac mode", hc.ha_mode)
+            print("target temp ->", hc.target_temperature)
+        # await dhw.set_temperature(53.0)
         # return
         # return
         # await dhw.set_ha_mode("performance") #MEANS MANUAL
